@@ -9,10 +9,8 @@ import com.abhi_app.JobMS.DTO.Review;
 import com.abhi_app.JobMS.Entities.Job;
 import com.abhi_app.JobMS.JobRepository.JobRepository;
 import com.abhi_app.JobMS.mapper.JobMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -36,6 +34,7 @@ public class JobServiceImpl implements JobService{
     ReviewClient reviewClient;
 
     @Override
+    @CircuitBreaker(name = "companyBreaker", fallbackMethod = "companyBreakerFallback")
     public List<JobDTO> getAllJobs() {
         List<Job> jobs = jobRepository.findAll();
         List<JobDTO> jobDTOs = new ArrayList<>();
@@ -44,6 +43,10 @@ public class JobServiceImpl implements JobService{
             jobDTOs.add(convertToDTO(job));
         }
         return jobDTOs;
+    }
+
+    public List<String> companyBreakerFallback(Exception e){
+        return List.of("Company service is temporarily unavailable!");
     }
 
     public JobDTO convertToDTO(Job job){

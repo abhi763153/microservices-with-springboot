@@ -19,6 +19,11 @@ public class ReviewController {
     @Autowired
     private ReviewServiceImple reviewServiceImple;
 
+    @GetMapping
+    public List<Review> getReviewsByCompany(@RequestParam("companyId") Long companyId){
+        return reviewServiceImple.getAllReviews(companyId);
+    }
+
     @GetMapping("/{reviewId}")
     public ResponseEntity<?> getReviewById(@PathVariable Long reviewId){
 
@@ -27,6 +32,13 @@ public class ReviewController {
                 ? new ResponseEntity<>(review, HttpStatus.OK)
                 : new ResponseEntity<>("Review not found", HttpStatus.NOT_FOUND);
 
+    }
+
+    @PostMapping("create")
+    public ResponseEntity<?> createReview(@RequestBody Review review){
+        return reviewServiceImple.createReviews(review)
+                ? new ResponseEntity<>("Review created successfully!", HttpStatus.OK)
+                : new ResponseEntity<>("Review failed to create!", HttpStatus.BAD_REQUEST);
     }
 
     @PutMapping("/{reviewId}")

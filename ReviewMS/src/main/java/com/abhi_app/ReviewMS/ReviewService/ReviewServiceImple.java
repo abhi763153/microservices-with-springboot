@@ -22,9 +22,9 @@ public class ReviewServiceImple implements ReviewService{
     }
 
     @Override
-    public boolean createReviews(Long companyId, Review review) {
+    public boolean createReviews(Review review) {
 
-        if(companyId != null && review != null){
+        if(review != null){
             try{
                 reviewRepository.save(review);
                 return true;
@@ -80,4 +80,5 @@ public class ReviewServiceImple implements ReviewService{
             return false;
         }
     }
+
 }
