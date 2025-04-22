@@ -45,7 +45,7 @@ public class JobServiceImpl implements JobService{
         return jobDTOs;
     }
 
-    public List<String> companyBreakerFallback(Exception e){
+     public List<String> companyBreakerFallback(Exception e){
         return List.of("Company service is temporarily unavailable!");
     }
 

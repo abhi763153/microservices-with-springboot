@@ -3,6 +3,7 @@ package com.abhi_app.ReviewMS.ReviewController;
 import com.abhi_app.ReviewMS.Entity.Review;
 import com.abhi_app.ReviewMS.Exceptions.ErrorResponse;
 import com.abhi_app.ReviewMS.Exceptions.ReviewNotFoundException;
+import com.abhi_app.ReviewMS.Messaging.ReviewMessageProducer;
 import com.abhi_app.ReviewMS.ReviewService.ReviewServiceImple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,9 @@ public class ReviewController {
 
     @Autowired
     private ReviewServiceImple reviewServiceImple;
+
+    @Autowired
+    private ReviewMessageProducer reviewMessageProducer;
 
     @GetMapping
     public List<Review> getReviewsByCompany(@RequestParam("companyId") Long companyId){
@@ -36,9 +40,13 @@ public class ReviewController {
 
     @PostMapping("create")
     public ResponseEntity<?> createReview(@RequestBody Review review){
-        return reviewServiceImple.createReviews(review)
-                ? new ResponseEntity<>("Review created successfully!", HttpStatus.OK)
-                : new ResponseEntity<>("Review failed to create!", HttpStatus.BAD_REQUEST);
+
+        if(reviewServiceImple.createReviews(review)){
+            reviewMessageProducer.sendMessage(review);
+            return new ResponseEntity<>("Review created successfully!", HttpStatus.OK);
+        }else {
+            return new ResponseEntity<>("Review failed to create!", HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PutMapping("/{reviewId}")
@@ -56,6 +64,14 @@ public class ReviewController {
                 ? new ResponseEntity<>("Review deleted successfully!", HttpStatus.OK)
                 : new ResponseEntity<>("Deletion failed!", HttpStatus.BAD_REQUEST);
     }
+
+    @GetMapping("/average-rating")
+    public double getAverageReview(@RequestParam Long companyId){
+        List<Review> reviews = reviewServiceImple.getAllReviews(companyId);
+
+        return reviews.stream().mapToDouble(Review::getRating).average().orElse(0.0);
+    }
+
 
 
 

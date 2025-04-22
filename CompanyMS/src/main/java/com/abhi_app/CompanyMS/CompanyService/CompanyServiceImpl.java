@@ -1,9 +1,13 @@
 package com.abhi_app.CompanyMS.CompanyService;
 
+import com.abhi_app.CompanyMS.Clients.ReviewClient;
 import com.abhi_app.CompanyMS.CompanyRepository.CompanyRepository;
+import com.abhi_app.CompanyMS.DTO.ReviewMessage;
 import com.abhi_app.CompanyMS.Entity.Company;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,10 +16,21 @@ import java.util.Optional;
 public class CompanyServiceImpl implements CompanyService{
 
     @Autowired
-    CompanyRepository companyRepository;
+    private CompanyRepository companyRepository;
+
+    @Autowired
+    private ReviewClient reviewClient;
+
 
     @Override
     public List<Company> getAllCompanies() {
+
+        List<Company> companies = companyRepository.findAll();
+
+        for (Company company: companies){
+            Long companyId = company.getId();
+        }
+
         return companyRepository.findAll();
     }
 
@@ -63,5 +78,19 @@ public class CompanyServiceImpl implements CompanyService{
             e.printStackTrace();
             return false;
         }
+    }
+
+    @Override
+    public void updateCompanyRating(ReviewMessage reviewMessage) {
+        Company company = companyRepository.findById(reviewMessage.getCompanyId()).orElse(null);
+
+        if(company != null){
+            double avgRating = reviewClient.getAverageRatingForCompany(reviewMessage.getCompanyId());
+
+            company.setRating(avgRating);
+
+            companyRepository.save(company);
+        }
+
     }
 }
