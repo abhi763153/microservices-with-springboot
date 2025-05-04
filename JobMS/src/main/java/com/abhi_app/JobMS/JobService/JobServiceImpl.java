@@ -9,7 +9,10 @@ import com.abhi_app.JobMS.DTO.Review;
 import com.abhi_app.JobMS.Entities.Job;
 import com.abhi_app.JobMS.JobRepository.JobRepository;
 import com.abhi_app.JobMS.mapper.JobMapper;
+import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -33,8 +36,9 @@ public class JobServiceImpl implements JobService{
     @Autowired
     ReviewClient reviewClient;
 
+    private static final Logger log = LoggerFactory.getLogger(JobServiceImpl.class);
+
     @Override
-    @CircuitBreaker(name = "companyBreaker", fallbackMethod = "companyBreakerFallback")
     public List<JobDTO> getAllJobs() {
         List<Job> jobs = jobRepository.findAll();
         List<JobDTO> jobDTOs = new ArrayList<>();
@@ -49,9 +53,25 @@ public class JobServiceImpl implements JobService{
         return List.of("Company service is temporarily unavailable!");
     }
 
+    @CircuitBreaker(name = "companyBreaker", fallbackMethod = "companyBreakerFallback")
     public JobDTO convertToDTO(Job job){
-        Company company = companyClients.getCompany(job.getCompanyId());
-        List<Review> reviews = reviewClient.getReviews(job.getCompanyId());
+        log.info("We are currently in ConvertToDTO and going to connect with Company microservice.");
+
+        Company company = null;
+        List<Review> reviews = null;
+        try {
+            company = companyClients.getCompany(job.getCompanyId());
+            reviews = reviewClient.getReviews(job.getCompanyId());
+        } catch (FeignException.NotFound ex) {
+            // Handle 404 error, perhaps return a default company or log an error
+            log.error("Company not found with ID: " + job.getCompanyId());
+            // Optionally, return a default Company or handle it in another way
+            company = new Company();
+        } catch (FeignException ex) {
+            // Handle other Feign errors (5xx, etc.)
+            log.error("Error calling CompanyMS service: " + ex.getMessage());
+            // Return default or throw exception as per your error handling policy
+        }
 
         JobDTO jobDTO = JobMapper.mapToJobWithCompanyDTO(job, company, reviews);
         return jobDTO;
